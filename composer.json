@@ -1,0 +1,32 @@
+{
+    "name": "meet/elasticsearch-orm",
+    "description": "Adapt the orm query method of elasticsearch for >=php7.4",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "meet",
+            "email": "meet@outlook.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Meet\\ElasticsearchOrm\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Meet\\ElasticsearchOrm\\Test\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=7.4",
+        "illuminate/support": "^5.3|^6.0|^7.0|^8.0|^9.0|^10.0",
+        "elasticsearch/elasticsearch": "^7.0",
+        "ramsey/uuid": "^4.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.4",
+        "symfony/var-dumper": "^5.2"
+    }
+}
