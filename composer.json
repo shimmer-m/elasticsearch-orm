@@ -1,5 +1,5 @@
 {
-    "name": "meet/elasticsearch-orm",
+    "name": "meet/meet-elasticsearch-orm",
     "description": "Adapt the orm query method of elasticsearch for >=php7.4",
     "type": "library",
     "license": "MIT",
