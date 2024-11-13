@@ -147,6 +147,58 @@ class BuilderTest extends TestCase
     public function testPagination(): void
     {
         $query = $this->builder->index($this->index);
-        dd($query->paginate(1, 10));
+        $list = $query->paginate(1, 10);
+        dd($list, $list->toArray());
+    }
+
+
+    /**
+     * 测试 GET
+     * @return void
+     */
+    public function testGet()
+    {
+        $query = $this->builder->index($this->index);
+        $query->limit(10); // 限制返回10条记录
+        $list = $query->get();
+        dd(
+            //原始查询数据
+            $list,
+            // 转换为数组
+            $list->toArray(),
+            // 获取总数
+            $list->count(),
+            // 转换为JSON
+            $list->toJson(),
+//            // 分页数据快
+//            $list->chunk(1),
+//            // 获取一条数据
+//            $list->first(function ($item) {
+//                return $item->age == 25;
+//            }),
+//            // 获取最后一条数据
+//            $list->last(),
+//            // 获取某一列
+//            $list->column('name'),
+//            // 获取某一列并去重
+//            $list->column('name', 'id'),
+//            // 根据某个字段排序
+//            $list->order('age'),
+//            //将数组打乱
+//            $list->shuffle(),
+//            // 搜索 模糊匹配 其他条件 使用方法同理
+//            $list->whereLike('name', 'User One'),
+
+        );
+    }
+
+    /**
+     * 测试单条查询
+     */
+    public function testFirst(): void
+    {
+        $query = $this->builder->index($this->index);
+        $data = $query->first();
+        dd($data);
     }
 }
