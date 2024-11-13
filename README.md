@@ -3,7 +3,7 @@
 ## Install
 
 ```
-composer require meet/elasticsearch-orm
+composer require  meet-library/elasticsearch-orm
 ```
 
 ## Support Elasticsearch Version
