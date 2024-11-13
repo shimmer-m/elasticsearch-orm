@@ -3,6 +3,7 @@
   "description": "Adapt the orm query method of elasticsearch for >=php7.4",
   "type": "library",
   "license": "MIT",
+  "version": "1.0.1",
   "authors": [
     {
       "name": "meet",
