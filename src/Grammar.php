@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Meet\ElasticsearchOrm;
 
-use Illuminate\Support\Arr;
+use Meet\ElasticsearchOrm\Tool\Arr;
 
 class Grammar
 {

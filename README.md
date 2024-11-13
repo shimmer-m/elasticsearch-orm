@@ -21,22 +21,6 @@ composer require meet/elasticsearch-orm
     $builder = Factory::builder($config);
 ```
 
-### Laravel framework
-
-Add the service provider config in `config/app.php`
-
-```php
-    'providers' => [
-        Meet\ElasticsearchOrm\Laravel\ElasticsearchOrm\OrmProvider::class,
-    ] 
-```
-
-Use in Code
-
-```php
-    $builder = app(Meet\ElasticsearchOrm\Builder::class);
-```
-
 ### Hyperf framework
 
 Use in Code
@@ -88,6 +72,7 @@ OrmElasticsearchClientFactory
 ```php
     $builder->index('index')->update(['key' => 'value']);
     $builder->index('index')->update(['key' => ['key2' => 'value']]);
+    $builder->index('index')->where('_id', 'You Id')->update(['key' => ['key2' => 'value']]);
 ```
 
 ### Batch Update Or Update

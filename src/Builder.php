@@ -4,8 +4,10 @@ namespace Meet\ElasticsearchOrm;
 
 use BadMethodCallException;
 use Closure;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
+use Elasticsearch\Client;
+use Meet\ElasticsearchOrm\Tool\Arr;
+use Meet\ElasticsearchOrm\Tool\Collection;
+use Meet\ElasticsearchOrm\Tool\Json;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
@@ -23,8 +25,8 @@ use RuntimeException;
  * @method Builder whereMatch($field, $value, $boolean = 'and')
  * @method Builder orWhereMatch($field, $value, $boolean = 'or')
  * @method Builder whereTerm($field, $value, $boolean = 'and')
- * @method Builder whereIn($field, array $value):
- * @method Builder orWhereIn($field, array $value): self
+ * @method Builder whereIn($field, array $value)
+ * @method Builder orWhereIn($field, array $value)
  * @method Builder orWhereTerm($field, $value, $boolean = 'or')
  * @method Builder whereRange($field, $operator = null, $value = null, $boolean = 'and')
  * @method Builder orWhereRange($field, $operator = null, $value = null)
@@ -39,7 +41,7 @@ use RuntimeException;
  * @method Builder orWhere($field, $operator = null, $value = null, $leaf = 'term')
  * @method Builder whereNested(string $nestedColumn, Closure $callback, $operator = null, string $boolean = 'and')
  * @method Builder newQuery()
- * @method Builder getElasticSearch()
+ * @method Client getElasticSearch() 获取ElasticSearch实例
  */
 class Builder
 {
@@ -67,17 +69,21 @@ class Builder
     }
 
     /**
+     * 重置查询Query
+     *
      * @return void
      */
-    public function resetQuery(): void
+    public function resetQuery()
     {
         $this->query = $this->query->newQuery();
     }
 
     /**
+     * 获取一条数据
+     *
      * @return object|null
      */
-    public function first(): ?object
+    public function first()
     {
         $this->query->limit(1);
 
@@ -85,22 +91,28 @@ class Builder
     }
 
     /**
+     * 执行查询，并处理返回数据
+     *
      * @return Collection
      */
-    public function get(): Collection
+    public function get()
     {
         return $this->metaData($this->getOriginal());
     }
 
     /**
+     * 执行原始查询，不处理返回数据
+     *
      * @return array
      */
-    public function getOriginal(): array
+    public function getOriginal()
     {
         return $this->runQuery($this->query->getGrammar()->compileSelect($this->query), 'search');
     }
 
     /**
+     * 分页查询
+     *
      * @param int $page
      * @param int $perPage
      *
@@ -125,24 +137,26 @@ class Builder
         $maxPage = intval(ceil($results['hits']['total']['value'] / $perPage));
 
         return Collection::make([
-            'total'        => $results['hits']['total']['value'],
-            'per_page'     => $perPage,
+            'total' => $results['hits']['total']['value'],
+            'per_page' => $perPage,
             'current_page' => $page,
-            'next_page'    => $page < $maxPage ? $page + 1 : $maxPage,
+            'next_page' => $page < $maxPage ? $page + 1 : $maxPage,
             //'last_page' => $maxPage,
             'total_pages' => $maxPage,
-            'from'        => $from,
-            'to'          => $from + $perPage,
-            'data'        => $data,
+            'from' => $from,
+            'to' => $from + $perPage,
+            'data' => $data,
         ]);
     }
 
     /**
+     * 通过主键获取数据
+     *
      * @param string|int $id
      *
      * @return null|object
      */
-    public function byId($id): ?object
+    public function byId($id)
     {
         $result = $this->runQuery(
             $this->query->whereTerm('_id', $id)->getGrammar()->compileSelect($this->query)
@@ -154,29 +168,33 @@ class Builder
     }
 
     /**
+     * 获取数据或抛出异常
+     *
      * @param string|int $id
      *
      * @return object
      */
-    public function byIdOrFail($id): object
+    public function byIdOrFail($id)
     {
         $result = $this->byId($id);
 
         if (empty($result)) {
-            throw new RuntimeException('Resource not found by id:'.$id);
+            throw new RuntimeException('Resource not found by id:' . $id);
         }
 
         return $result;
     }
 
     /**
+     * 组块读取数据
+     *
      * @param callable $callback
      * @param int $limit
      * @param string $scroll
      *
      * @return bool
      */
-    public function chunk(callable $callback, int $limit = 2000, string $scroll = '10m'): bool
+    public function chunk(callable $callback, int $limit = 2000, string $scroll = '10m')
     {
         if (empty($this->query->scroll)) {
             $this->query->scroll($scroll);
@@ -215,6 +233,8 @@ class Builder
     }
 
     /**
+     * 创建数据
+     *
      * @param array $data
      * @param string|int|null $id
      * @param string $key
@@ -222,7 +242,7 @@ class Builder
      * @return object
      * @throws \Exception
      */
-    public function create(array $data, $id = null, $key = 'id'): object
+    public function create(array $data, $id = null, $key = 'id')
     {
         $id = $id ?? ($data[$key] ?? Uuid::uuid4()->toString());
 
@@ -232,16 +252,18 @@ class Builder
         );
 
         if (!isset($result['result']) || $result['result'] !== 'created') {
-            throw new RunTimeException('Create error, params: '.json_encode($this->getLastQueryLog()));
+            throw new RunTimeException('Create error, params: ' . Json::encode($this->getLastQueryLog()));
         }
 
         $data['_id'] = $id;
         $data['_result'] = $result;
 
-        return (object) $data;
+        return (object)$data;
     }
 
     /**
+     * 批量创建数据
+     *
      * @param array $data
      * @param string $key primary_key
      * @return mixed
@@ -258,6 +280,8 @@ class Builder
     }
 
     /**
+     * 批量创建或更新数据
+     *
      * @param array $data
      * @param string $key
      * @return mixed
@@ -274,6 +298,8 @@ class Builder
     }
 
     /**
+     * 创建数据集合
+     *
      * @param array $data
      * @param string|int|null $id
      * @param string $key
@@ -281,23 +307,24 @@ class Builder
      * @return Collection
      * @throws \Exception
      */
-    public function createCollection(array $data, $id = null, $key = 'id'): Collection
+    public function createCollection(array $data, $id = null, $key = 'id')
     {
         return Collection::make($this->create($data, $id, $key));
     }
 
     /**
+     * 更新数据
+     *
      * @param string|int $id
-     * @param array      $data
+     * @param array $data
      *
      * @return bool
      */
-    public function update($id, array $data): bool
+    public function update($id, array $data)
     {
         $result = $this->runQuery($this->query->getGrammar()->compileUpdate($this->query, $id, $data), 'update');
-
         if (!isset($result['result']) || ($result['result'] !== 'updated' && $result['result'] !== 'noop')) {
-            throw new RunTimeException('Update error params: ' . json_encode($this->getLastQueryLog()));
+            throw new RunTimeException('Update error params: ' . Json::encode($this->getLastQueryLog()));
         }
         if ($result['result'] === 'updated') {
             return true;
@@ -306,16 +333,19 @@ class Builder
     }
 
     /**
+     *
+     * 删除数据
+     *
      * @param string|int $id
      *
      * @return bool
      */
-    public function deleteById($id): bool
+    public function deleteById($id)
     {
         $result = $this->runQuery($this->query->getGrammar()->compileDelete($this->query, $id), 'delete');
 
         if (!isset($result['result']) || ($result['result'] !== 'deleted' && $result['result'] !== 'not_found')) {
-            throw new RunTimeException('Delete error params:' . json_encode($this->getLastQueryLog()));
+            throw new RunTimeException('Delete error params:' . Json::encode($this->getLastQueryLog()));
         }
         if ($result['result'] === 'deleted') {
             return true;
@@ -324,6 +354,8 @@ class Builder
     }
 
     /**
+     * 批量删除数据
+     *
      * @return int|mixed
      */
     public function delete()
@@ -333,6 +365,8 @@ class Builder
     }
 
     /**
+     * 数量
+     *
      * @return int
      */
     public function count(): int
@@ -343,7 +377,9 @@ class Builder
     }
 
     /**
-     * @param array  $params
+     * 运行查询
+     *
+     * @param array $params
      * @param string $method
      *
      * @return mixed
@@ -360,9 +396,11 @@ class Builder
     }
 
     /**
+     * 启用查询日志
+     *
      * @return Builder
      */
-    public function enableQueryLog(): self
+    public function enableQueryLog()
     {
         $this->enableQueryLog = true;
 
@@ -370,9 +408,11 @@ class Builder
     }
 
     /**
+     * 关闭查询日志
+     *
      * @return Builder
      */
-    public function disableQueryLog(): self
+    public function disableQueryLog()
     {
         $this->enableQueryLog = false;
 
@@ -380,27 +420,33 @@ class Builder
     }
 
     /**
+     * 获取查询日志
+     *
      * @return array
      */
-    public function getQueryLog(): array
+    public function getQueryLog()
     {
         return $this->queryLogs;
     }
 
     /**
+     * 获取最近一次的查询日志
+     *
      * @return mixed
      */
-    public function getLastQueryLog(): mixed
+    public function getLastQueryLog()
     {
         return Arr::last($this->queryLogs);
     }
 
     /**
+     * 获取元数据
+     *
      * @param array $results
      *
      * @return Collection
      */
-    protected function metaData(array $results): Collection
+    protected function metaData(array $results)
     {
         return Collection::make($results['hits']['hits'])->map(function ($hit) {
             return $this->sourceToObject($hit);
@@ -408,26 +454,32 @@ class Builder
     }
 
     /**
+     * 将结果转换为对象
+     *
      * @param array $result
      *
      * @return object
      */
-    protected function sourceToObject(array $result): object
+    protected function sourceToObject(array $result)
     {
-        return (object) array_merge($result['_source'], ['_id' => $result['_id'], '_score' => $result['_score']]);
+        return (object)array_merge($result['_source'], ['_id' => $result['_id'], '_score' => $result['_score']]);
     }
 
     /**
+     * 转换为body
+     *
      * @return array
      */
-    public function toBody(): array
+    public function toBody()
     {
         return $this->query->getGrammar()->compileSelect($this->query);
     }
 
     /**
+     * 动态调用
+     *
      * @param string $name
-     * @param array  $arguments
+     * @param array $arguments
      *
      * @return mixed
      */
@@ -445,4 +497,65 @@ class Builder
 
         throw new BadMethodCallException(sprintf('The method[%s] not found', $name));
     }
+
+    /**
+     * scroll查询
+     * @param string $scroll
+     * @param string $scrollId
+     * @return mixed
+     */
+    public function scrollPaginate(string $scroll, string $scrollId = '')
+    {
+        $params = ['scroll' => $scroll];
+        if (!empty($scrollId)) {
+            $params['scroll_id'] = $scrollId;
+            return $this->runQuery($params, 'scroll');
+        }
+        $params = array_merge($params, $this->query->getGrammar()->compileSelect($this->query));
+        return $this->runQuery($params);
+    }
+
+    /**
+     * function_score查询
+     * 使用场景：搜索结果打分，排序、过滤，用于给用户推荐相关数据等等
+     * @param null $functionParams
+     * @param int|null $size
+     * @return Collection
+     */
+    public function functionScoreGet($functionParams = null, int $size = 20)
+    {
+        $params = $this->compileSelect();
+        $functionSource = [
+            // 得分模式: multiply、replace、sum、avg、max、min
+            'boost_mode' => $functionParams['boost_mode'] ?? 'replace',
+            // 定义如何合并多个函数的得分: multiply、sum、avg、first、max、min
+            'score_mode' => $functionParams['score_mode'] ?? 'multiply',
+        ];
+        // 组装条件
+        if (!empty($params['body']['query'])) {
+            $functionSource['query'] = $params['body']['query'];
+            unset($params['body']['query']);
+        }
+
+        // 评分规则函数
+        if (!empty($functionParams['functions'])) {
+            $functionSource['functions'] = $functionParams['functions'];
+        } elseif (!empty($functionParams['random_score'])) {
+            // 随机分数模式: seed 整数| field指定字段随机
+            $functionSource['random_score'] = (object)$functionParams['random_score'];
+        }
+        $params['body']['query']['function_score'] = $functionSource;
+        $params['size'] = $size;
+        return $this->metaData($this->runQuery($params));
+    }
+
+    /**
+     * 生成查询语句
+     * @return array
+     */
+    public function compileSelect(): array
+    {
+        return $this->query->getGrammar()->compileSelect($this->query);
+    }
+
 }

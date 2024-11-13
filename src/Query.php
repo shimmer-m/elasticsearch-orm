@@ -42,7 +42,7 @@ class Query
     /**
      * @var string|array
      */
-    public string|array $index;
+    public string $index;
 
     /**
      * @var string
@@ -500,6 +500,8 @@ class Query
     }
 
     /**
+     * 获取一个新的查询构造器实例。
+     *
      * @return Query
      */
     public function newQuery(): self
